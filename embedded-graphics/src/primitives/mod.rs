@@ -8,6 +8,7 @@ pub mod polyline;
 pub mod rectangle;
 pub mod rounded_rectangle;
 pub mod sector;
+mod sparse_iterator;
 pub mod triangle;
 
 pub use self::{
