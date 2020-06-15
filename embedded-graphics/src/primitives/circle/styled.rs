@@ -3,9 +3,12 @@ use crate::{
     drawable::{Drawable, Pixel},
     geometry::{Dimensions, Point, Size},
     pixelcolor::PixelColor,
-    primitives::circle::{diameter_to_threshold, distance_iterator::DistanceIterator, Circle},
-    primitives::rectangle::{self, Rectangle},
-    primitives::Primitive,
+    primitives::{
+        circle::{diameter_to_threshold, distance_iterator::DistanceIterator, Circle},
+        rectangle::{self, Rectangle},
+        sparse_iterator::SparseIterator,
+        Primitive,
+    },
     style::{PrimitiveStyle, Styled},
 };
 
@@ -60,24 +63,18 @@ impl<C> Iterator for StyledPixels<C>
 where
     C: PixelColor,
 {
-    type Item = Pixel<C>;
+    type Item = Option<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        for (point, distance) in &mut self.iter {
-            let color = if distance < self.inner_threshold {
+        self.iter.next().map(|(_point, distance)| {
+            if distance < self.inner_threshold {
                 self.inner_color
             } else if distance < self.outer_threshold {
                 self.outer_color
             } else {
                 None
-            };
-
-            if let Some(color) = color {
-                return Some(Pixel(point, color));
             }
-        }
-
-        None
+        })
     }
 }
 
@@ -86,10 +83,10 @@ where
     C: PixelColor,
 {
     type Item = Pixel<C>;
-    type IntoIter = StyledPixels<C>;
+    type IntoIter = SparseIterator<C, StyledPixels<C>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        StyledPixels::new(self)
+        SparseIterator::new(self.bounding_box(), StyledPixels::new(self))
     }
 }
 
@@ -98,7 +95,12 @@ where
     C: PixelColor,
 {
     fn draw<D: DrawTarget<Color = C>>(self, display: &mut D) -> Result<(), D::Error> {
-        display.draw_iter(self)
+        display.fill_sparse(
+            &self
+                .bounding_box()
+                .expand(self.style.outside_stroke_width()),
+            StyledPixels::new(self),
+        )
     }
 }
 
