@@ -139,7 +139,7 @@ mod font8x16;
 mod mono_char_pixels;
 mod text;
 
-pub(crate) use mono_char_pixels::MonoCharPixels;
+pub use mono_char_pixels::MonoCharPixels;
 pub use text::Text;
 
 pub use font12x16::Font12x16;
